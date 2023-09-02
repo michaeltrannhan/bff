@@ -1,0 +1,121 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["fullTextSearch", "postgresqlExtensions", "views"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [postgis(schema: "public"), uuid_ossp(map: "uuid-ossp", schema: "public")]
+}
+
+model branch {
+  id        String         @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  name      String?        @db.VarChar
+  address   String?        @db.VarChar
+  longitude Float?
+  latitude  Float?
+  status    branch_status? @default(INACTIVE)
+  store_id  String?        @db.Uuid
+  store     store?         @relation(fields: [store_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model product {
+  id              String            @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  name            String?           @db.VarChar
+  description     String?           @db.VarChar
+  images          String?           @db.VarChar
+  store_id        String?           @db.Uuid
+  store           store?            @relation(fields: [store_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  product_variant product_variant[]
+}
+
+model product_variant {
+  id         String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  name       String?  @default("default") @db.VarChar
+  price      Float?
+  currency   String?  @db.VarChar
+  product_id String?  @db.Uuid
+  product    product? @relation(fields: [product_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model schema_migrations {
+  version BigInt  @id
+  dirty   Boolean
+}
+
+model store {
+  id        String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  name      String    @unique @db.VarChar
+  email     String?   @db.VarChar
+  phone     String?   @db.VarChar
+  image_url String?   @db.VarChar
+  branch    branch[]
+  product   product[]
+}
+
+model users {
+  id                  String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  phone               String   @db.VarChar
+  facebook_id         String?  @db.Uuid
+  google_id           String?  @db.Uuid
+  apple_id            String?  @db.Uuid
+  hashed_password     String   @db.VarChar
+  full_name           String   @db.VarChar
+  email               String   @unique @db.VarChar
+  password_changed_at DateTime @default(dbgenerated("'0001-01-01 00:00:00+00'::timestamp with time zone")) @db.Timestamptz(6)
+  created_at          DateTime @default(now()) @db.Timestamptz(6)
+  photo_url           String?  @db.VarChar
+  is_valid            Boolean? @default(false)
+  hashed_token        String   @db.VarChar
+}
+
+model locations_rep {
+  id          Int                                  @id @default(autoincrement())
+  name        String?                              @db.VarChar(255)
+  coordinates Unsupported("geometry(Point, 4326)")
+  storeid     String?                              @db.Uuid
+
+  @@index([coordinates], name: "location_idx", type: Gist)
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model spatial_ref_sys {
+  srid      Int     @id
+  auth_name String? @db.VarChar(256)
+  auth_srid Int?
+  srtext    String? @db.VarChar(2048)
+  proj4text String? @db.VarChar(2048)
+}
+
+/// The underlying view does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+view geography_columns {
+  f_table_catalog    Unsupported("name")?
+  f_table_schema     Unsupported("name")?
+  f_table_name       Unsupported("name")?
+  f_geography_column Unsupported("name")?
+  coord_dimension    Int?
+  srid               Int?
+  type               String?
+
+  @@ignore
+}
+
+/// The underlying view does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+view geometry_columns {
+  f_table_catalog   String?              @db.VarChar(256)
+  f_table_schema    Unsupported("name")?
+  f_table_name      Unsupported("name")?
+  f_geometry_column Unsupported("name")?
+  coord_dimension   Int?
+  srid              Int?
+  type              String?                @db.VarChar(30)
+
+  @@ignore
+}
+
+enum branch_status {
+  ACTIVE
+  INACTIVE
+  PENDING
+}
