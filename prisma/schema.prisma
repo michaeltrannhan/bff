@@ -67,7 +67,7 @@ model users {
   created_at          DateTime @default(now()) @db.Timestamptz(6)
   photo_url           String?  @db.VarChar
   is_valid            Boolean? @default(false)
-  hashed_token        String   @db.VarChar
+  hashed_token        String?  @db.VarChar
 }
 
 model locations_rep {
@@ -76,7 +76,7 @@ model locations_rep {
   coordinates Unsupported("geometry(Point, 4326)")
   storeid     String?                              @db.Uuid
 
-  @@index([coordinates], name: "location_idx", type: Gist)
+  @@index([coordinates], name: "location_idx", type: SpGist)
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
@@ -109,7 +109,7 @@ view geometry_columns {
   f_geometry_column Unsupported("name")?
   coord_dimension   Int?
   srid              Int?
-  type              String?                @db.VarChar(30)
+  type              String?              @db.VarChar(30)
 
   @@ignore
 }
